@@ -29,7 +29,7 @@ def audio_load():
 
     audio_str1 = f"data:audio/ogg;base64,{base64.b64encode(contents1).decode()}"
     st.session_state.bgm_html = f"""
-                    <audio id="audio1" preload="auto" autoplay=True>
+                    <audio id="audio1" autoplay=True>
                     <source src="{audio_str1}" type="audio/ogg" autoplay=True>
                     </audio>
                 """
@@ -41,7 +41,7 @@ def audio_load():
 
     audio_str2 = f"data:audio/ogg;base64,{base64.b64encode(contents2).decode()}"
     st.session_state.audio_html1 = f"""
-                    <audio id="audio1" preload="auto" autoplay=True>
+                    <audio id="audio1" autoplay=True>
                     <source src="{audio_str2}" type="audio/ogg" autoplay=True>
                     </audio>
                 """
