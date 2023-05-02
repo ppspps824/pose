@@ -15,26 +15,18 @@ KEYPOINT_THRESHOLD = 0.2
 
 
 @st.cache_resource
-def dl_model():
+def init_dl():
     model = hub.load("https://tfhub.dev/google/movenet/multipose/lightning/1")
-    return model
 
-
-@st.cache_resource
-def read_file(url):
-    with urllib.request.urlopen(url=url) as file:
-        contents = file.read()
-    return contents
-
-
-def audio_load():
     bgm_path = (
         "https://drive.google.com/uc?id=1PKOHg8HTRvYhirULB87FUO8Jap7QGu9W"  # 入力する音声ファイル
     )
-    contents1 = read_file(bgm_path)
+
+    with urllib.request.urlopen(url=bgm_path) as file1:
+        contents1 = file1.read()
 
     audio_str1 = f"data:audio/ogg;base64,{base64.b64encode(contents1).decode()}"
-    st.session_state.bgm_html = f"""
+    bgm_html = f"""
                     <audio id="audio1" autoplay=True>
                     <source src="{audio_str1}" type="audio/ogg" autoplay=True>
                     </audio>
@@ -42,24 +34,25 @@ def audio_load():
     audio_path1 = (
         "https://drive.google.com/uc?id=1ui9nWGK52lfvl2az7iD-jUVOFbj4F4o1"  # 入力する音声ファイル
     )
-    contents2 = read_file(audio_path1)
+
+    with urllib.request.urlopen(url=audio_path1) as file2:
+        contents2 = file2.read()
 
     audio_str2 = f"data:audio/ogg;base64,{base64.b64encode(contents2).decode()}"
-    st.session_state.audio_html1 = f"""
-                    <audio id="audio1" autoplay=True>
+    audio_html1 = f"""
+                    <audio id="audio2" autoplay=True>
                     <source src="{audio_str2}" type="audio/ogg" autoplay=True>
                     </audio>
                 """
 
+    dl_contents = {"model": model, "bgm_html": bgm_html, "audio_html1": audio_html1}
 
-def bgm_play():
+    return dl_contents
+
+
+def audio_play(html):
     time.sleep(0.5)
-    st.markdown(st.session_state.bgm_html, unsafe_allow_html=True)
-
-
-def correct_sound():
-    time.sleep(0.5)
-    st.markdown(st.session_state.audio_html1, unsafe_allow_html=True)
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def change_image():
@@ -68,13 +61,16 @@ def change_image():
 
 def main():
     start_image = "./start.png"
-    col1, col2, col3 = st.columns([1, 3, 1])
-    with col2:
+    _, logo, _ = st.columns([1.2, 3, 1.2])
+    with logo:
         placeholder = st.empty()
 
     placeholder.image(start_image, use_column_width=True)
+    dl_contents = init_dl()
+    audio_play(dl_contents["bgm_html"])
+
     # Tensorflow Hubを利用してモデルダウンロード
-    model = dl_model()
+    model = dl_contents["model"]
     movenet = model.signatures["serving_default"]
 
     col2, col3 = st.columns(2)
@@ -88,6 +84,7 @@ def main():
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     placeholder.empty()
+    st.button("スキップ", on_click=change_image)
 
     while True:
         target_image = cv2.imread(st.session_state.image_path)
@@ -117,12 +114,16 @@ def main():
                 neary_score = abs(in_value1[0] - in_value2[0]) + abs(
                     in_value1[1] - in_value2[1]
                 )
-        # text_place.write(f"## {neary_score}")
-        if neary_score < 50:
-            correct_sound()
+        if neary_score < 20:
+            audio_play(dl_contents["audio_html1"])
             st.balloons()
             time.sleep(2)
             change_image()
+        elif 21 < neary_score < 100:
+            text_place.write("## 惜しい！もうちょっと！")
+
+        else:
+            text_place.write("## ポーズをまねしよう")
 
     cap.release()
 
@@ -242,8 +243,5 @@ if __name__ == "__main__":
     if "image_path" not in st.session_state:
         st.session_state.image_path_list = glob.glob("image/*.png")
         st.session_state.image_path = st.session_state.image_path_list[0]
-
-    audio_load()
-    bgm_play()
 
     main()
