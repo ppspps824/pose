@@ -20,25 +20,29 @@ def dl_model():
     return model
 
 
-# @st.cache_data
+@st.cache_resource
+def read_file(url):
+    with urllib.request.urlopen(url=url) as file:
+        contents = file.read()
+    return contents
+
+
 def audio_load():
     bgm_path = (
         "https://drive.google.com/uc?id=1PKOHg8HTRvYhirULB87FUO8Jap7QGu9W"  # 入力する音声ファイル
     )
-    with urllib.request.urlopen(url=bgm_path) as file1:
-        contents1 = file1.read()
+    contents1 = read_file(bgm_path)
 
     audio_str1 = f"data:audio/ogg;base64,{base64.b64encode(contents1).decode()}"
     st.session_state.bgm_html = f"""
-                    <audio loop id="audio1" autoplay=True>
+                    <audio id="audio1" autoplay=True>
                     <source src="{audio_str1}" type="audio/ogg" autoplay=True>
                     </audio>
                 """
     audio_path1 = (
         "https://drive.google.com/uc?id=1ui9nWGK52lfvl2az7iD-jUVOFbj4F4o1"  # 入力する音声ファイル
     )
-    with urllib.request.urlopen(url=audio_path1) as file2:
-        contents2 = file2.read()
+    contents2 = read_file(audio_path1)
 
     audio_str2 = f"data:audio/ogg;base64,{base64.b64encode(contents2).decode()}"
     st.session_state.audio_html1 = f"""
@@ -62,11 +66,16 @@ def change_image():
     st.session_state.image_path = random.choice(st.session_state.image_path_list)
 
 
-def game():
+def main():
+    start_image = "./start.png"
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        placeholder = st.empty()
+
+    placeholder.image(start_image, use_column_width=True)
     # Tensorflow Hubを利用してモデルダウンロード
-    with st.spinner("読み込み中・・・"):
-        model = dl_model()
-        movenet = model.signatures["serving_default"]
+    model = dl_model()
+    movenet = model.signatures["serving_default"]
 
     col2, col3 = st.columns(2)
     with col2:
@@ -78,6 +87,7 @@ def game():
     # カメラ設定
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    placeholder.empty()
 
     while True:
         target_image = cv2.imread(st.session_state.image_path)
@@ -115,28 +125,6 @@ def game():
             change_image()
 
     cap.release()
-
-
-def main():
-    start_image = "./start.png"
-    with open(start_image, "rb") as image3:
-        encoded = base64.b64encode(image3.read()).decode()
-        start_logo = f"data:image/jpeg;base64,{encoded}"
-    logo_place = st.empty()
-    with logo_place:
-        clicked = clickable_images(
-            [start_logo],
-            titles="",
-            div_style={
-                "display": "flex",
-                "justify-content": "center",
-                "flex-wrap": "wrap",
-            },
-            key="final",
-        )
-    if clicked == 0:
-        logo_place = st.empty()
-        game()
 
 
 def run_inference(model, image):
