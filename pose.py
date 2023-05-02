@@ -9,6 +9,7 @@ import numpy as np
 import streamlit as st
 import tensorflow as tf
 import tensorflow_hub as hub
+from st_clickable_images import clickable_images
 
 KEYPOINT_THRESHOLD = 0.2
 
@@ -29,7 +30,7 @@ def audio_load():
 
     audio_str1 = f"data:audio/ogg;base64,{base64.b64encode(contents1).decode()}"
     st.session_state.bgm_html = f"""
-                    <audio id="audio1" autoplay=True>
+                    <audio loop id="audio1" autoplay=True>
                     <source src="{audio_str1}" type="audio/ogg" autoplay=True>
                     </audio>
                 """
@@ -61,16 +62,11 @@ def change_image():
     st.session_state.image_path = random.choice(st.session_state.image_path_list)
 
 
-def main():
-    st.markdown(
-        "<h1 style='text-align: center; '>ポーズを決めろ！🕺</h1>",
-        unsafe_allow_html=True,
-    )
+def game():
     # Tensorflow Hubを利用してモデルダウンロード
-    print("モデルのダウンロード中")
-    model = dl_model()
-    print("モデルのダウンロード完了")
-    movenet = model.signatures["serving_default"]
+    with st.spinner("読み込み中・・・"):
+        model = dl_model()
+        movenet = model.signatures["serving_default"]
 
     col2, col3 = st.columns(2)
     with col2:
@@ -119,6 +115,28 @@ def main():
             change_image()
 
     cap.release()
+
+
+def main():
+    start_image = "./start.png"
+    with open(start_image, "rb") as image3:
+        encoded = base64.b64encode(image3.read()).decode()
+        start_logo = f"data:image/jpeg;base64,{encoded}"
+    logo_place = st.empty()
+    with logo_place:
+        clicked = clickable_images(
+            [start_logo],
+            titles="",
+            div_style={
+                "display": "flex",
+                "justify-content": "center",
+                "flex-wrap": "wrap",
+            },
+            key="final",
+        )
+    if clicked == 0:
+        logo_place = st.empty()
+        game()
 
 
 def run_inference(model, image):
